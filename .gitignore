@@ -1,3 +1,5 @@
 secret.js
 *.png
 *.jpg
+*.xml
+*.iml

@@ -1,8 +1,10 @@
 /* WaterWand WebApp CSS */
 /* Written by FRC Team 1540: The Flaming Chickens */
 
-body {
-	overflow: hidden;
+.main-body {
+    overflow-x: scroll;
+    overflow-y: scroll;
+    background: rgb(250,250,250);
 }
 
 /*
@@ -10,7 +12,7 @@ body {
 		 */
 
 .upper-banner {
-	background-image: url('water.jpg');
+    background-image: url('water.jpg');
     text-align: center;
     border-bottom: 1px solid black;
 }
@@ -21,6 +23,42 @@ body {
 
 .banner-title {
     color: white;
+    font-family: oxygen;
+}
+
+.logo {
+    height: 7.5vh;
+}
+
+ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #333;
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+}
+
+li {
+    float: left;
+}
+
+li a {
+    display: block;
+    color: white;
+    text-align: center;
+    padding: 14px 16px;
+    text-decoration: none;
+}
+
+li a:hover:not(.active) {
+    background-color: #111;
+}
+
+.active {
+    background-color: #4CAF50;
 }
 
 /*
@@ -29,9 +67,9 @@ body {
 
 /* search box on main page */
 #search-box {
-    width:20vw;
-    position:relative;
-    top:6px;
+    position: relative;
+    top: 6px;
+    width: 77.5vw;
 }
 
 /* the submit button for searching on the home page */
@@ -39,16 +77,33 @@ body {
     background-color: #66a5ad;
     color: white;
 }
+
 /* div that contains list of locations */
 .loc-options {
-    width:100%;
-    /* height:580px; */
-    /* overflow-y:auto; */
-    height: 78vh;
     overflow-x: hidden;
     overflow-y: auto;
-    margin-top: 2vh;
+    margin-top: 20px;
+    height: 500px;
+    width: 35vw;
+    margin-left: 5vw;
 }
+
+/* the iframe that displays a preview of the indicator */
+.indicator-display {
+    margin-left: 2vw;
+    width: 55.5vw;
+    height: 505px;
+    position: relative;
+    margin-top: 20px;
+    border: 1px solid gray;
+}
+
+/* table inside of loc-options */
+.loc-table {
+    background: white;
+    /*height: 70vh;*/
+}
+
 /* buttons for selecting locations */
 .loc-select {
     background-color: #66a5ad;
@@ -61,77 +116,101 @@ body {
 
 .back {
     border: 1px solid black;
-    position:absolute;
-    left:5px;
-    top:5px;
+    position: absolute;
+    left: 5px;
+    top: 5px;
 }
+
 .excel-export {
     border: 1px solid black;
-    position:absolute;
-    left:75px;
-    top:5px;
-    background:rgb(0,113,66);
-    color:rgb(247,247,247);
+    position: absolute;
+    left: 75px;
+    top: 5px;
+    background: rgb(0, 113, 66);
+    color: rgb(247, 247, 247);
 }
+
 /* style for the indicator options */
 .option, .option:hover {
     background-color: #2c7d84;
+    /*background: #111111;*/
+    /*color: white;*/
     border: 1px solid black;
-    color: black;
-}
-.option:hover {
     color: white;
 }
+
+.option:hover {
+    background-color: #479199;
+}
+
 /* style for the selected buttons */
 .selected-option, .selected-option:hover {
-    background: #479199;
+    /*background: #479199;*/
+    /*color: white;*/
+    background: #111111;
     color: white;
 }
+
+.loc-page {
+    background-color: white;
+    height: 100%;
+}
+
+.iframe-option {
+    font-size:3vw;
+    width:20vw;
+    height:45px;
+}
+
 /* allows for scrollbar on indicator tables */
 .table-div {
-    overflow-y:auto;
+    overflow-y: auto;
     height: 350px;
 }
+
 /* for indicator tables only */
 .data-table {
     height: 315px;
 }
+
+/*
+  WINDOW SIZES
+              */
+
+ /*This code makes the following style changes only when the screen width is less than or equal to 992px*/
+@media screen and (max-width: 575px) {
+    .loc-options {
+        width: 95vw;
+    }
+    .indicator-display-div {
+        display: none;
+    }
+}
+
 /*
   SCROLLBARS
 			*/
 /* The following adds a scrollbar to the loc-options and table-div divs */
 /* inspired by https://stackoverflow.com/questions/7743840/apply-webkit-scrollbar-style-to-specified-element */
 
-/* This code makes the following style changes only when the screen width is less than or equal to 992px */
-@media screen and (max-width:992px) {
-    .loc-options {
-        width:95%;
-        maring-left:2px;
-    }
-    .home-map {
-        display:none;
-    }
-    #search-box {
-        width:75vw;
-    }
-}
-
-
 div.loc-options::-webkit-scrollbar, div.table-div::-webkit-scrollbar {
     width: 12px;
 }
+
 div.loc-options::-webkit-scrollbar-track, div.table-div::-webkit-scrollbar-track {
-    -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3);
-     border-radius: 10px;
-     background: #f1f1f1;
+    -webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    background: #f1f1f1;
 }
+
 div.loc-options::-webkit-scrollbar-thumb, div.table-div::-webkit-scrollbar-thumb {
     border-radius: 10px;
-    -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.5);
+    -webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.5);
     background: #cecece;
 }
+
 div.loc-options::-webkit-scrollbar-thumb:hover, div.table-div::-webkit-scrollbar-thumb:hover {
     border-radius: 10px;
-    -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.5);
+    -webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.5);
     background: #888;
 }

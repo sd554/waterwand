@@ -1,132 +1,234 @@
 <!--WaterWand by FRC Team 1540: The Flaming Chickens-->
 
 <html>
-  <head>
-    <title>WaterWand</title>
-    <!-- BootStrap, jQuery -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
-    <!-- jQuery -->
-    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-      <!-- If jQuery isn't working, try uncommenting this code: <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script> -->
-      <!-- If bootstrap isn't working, try uncommenting this code: <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script> -->
-    <script class="maps_script" type="text/javascript"></script>
-    <!-- For the plot.ly graphs -->
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-    <!-- For the google sheets api -->
-    <script src="https://apis.google.com/js/api.js"></script>
-    <!-- Locally stored API keys, passwords, etc. -->
-    <script class="secret_script" type="text/javascript" src="secret.js"></script>
-    <!-- Functions and such to aid/simplify the Google Sheets API -->
-    <script type="text/javascript" src="sheets.js"></script>
-    <!-- CSS -->
-    <link class="style-css" rel="stylesheet" href="style.css"></link>
-    <script>
+<head>
+  <title>WaterWand</title>
+  <!-- BootStrap, jQuery -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css"
+        integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+  <!-- jQuery -->
+  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+          integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+          crossorigin="anonymous"></script>
+  <!-- If jQuery isn't working, try uncommenting this code: <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script> -->
+  <!-- If bootstrap isn't working, try uncommenting this code: <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script> -->
+  <script class="maps_script" type="text/javascript"></script>
+  <!-- For the plot.ly graphs -->
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <!-- For the fuzzy search -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/3.3.0/fuse.min.js"></script>
+  <!-- For the google sheets api -->
+  <script src="https://apis.google.com/js/api.js"></script>
+  <!-- Locally stored API keys, passwords, etc. -->
+  <script class="secret_script" type="text/javascript" src="secret.js"></script>
+  <!-- Functions and such to aid/simplify the Google Sheets API -->
+  <script type="text/javascript" src="sheets.js"></script>
+  <!-- CSS -->
+  <link rel="stylesheet" href="style.css"></link>
+  <script>
       const SPREADSHEET_ID = secret["spreadsheet_id"]; // ID for the specific spreadsheet we are using
       const CLIENT_ID = secret["client_sheets_id"]; // Google sheets client ID
       const MAPS_API_KEY = secret["maps_api_key"]; // Google maps API key
 
-      $(document).ready(function() {
-        $(".maps_script").attr("src", "//maps.googleapis.com/maps/api/js?key=" + MAPS_API_KEY);
-        $(".home-map").attr("src", "https://www.google.com/maps/embed/v1/view?key=" + MAPS_API_KEY + "&center=45.5122,-122.6587&zoom=6&maptype=satellite");
+      $(document).ready(function () {
+          $(".maps_script").attr("src", "//maps.googleapis.com/maps/api/js?key=" + MAPS_API_KEY);
       });
 
-      var map_pos = {lat:45.5122,lng:-122.6587} // The current home screen map position
-      var query = ""; // The query in the search bar
-      var chosen_loc = "Place"; // The current location that is selected
-      var focus = "Default"; // The current tab opened on a location page
+      let map_pos = {lat: 45.5122, lng: -122.6587} // The current home screen map position
+      let query = ""; // The query in the search bar
+      let chosen_loc = "Place"; // The current location that is selected
+      let hover_loc = "Place"; // The previous hovered location.
+      let focus = "Default"; // The current tab opened on a location page
 
       /* Stores name, lat, and lng of all places with data */
-      var locations = [
-      ];
+      let locations = [];
 
       /* Stores all downloaded data */
-      var data = {};
+      let data = {};
+
+      /* Today's date */
+      let today = new Date().getTime();
+
+      /* Obtaining cached data */
+      const cache_date_string = localStorage["cache_date"];
+      const cache_data_string = localStorage["cache_data"];
+      const cache_locations_string = localStorage["cache_locations"];
+      let cache_date;
+      let cache_data;
+      let cache_locs;
+      if (cache_date_string !== undefined) { cache_date = parseInt(cache_date_string); }
+      if (cache_data_string !== undefined) { cache_data = JSON.parse(cache_data_string); }
+      if (cache_locations_string !== undefined) { cache_locs = JSON.parse(cache_locations_string); }
 
       /* Descriptions of all of the water quality indicators */
-      var focus_descriptions = {
-        Overview: "",
-        ph: "pH (parts Hydrogen) measures the hydrogen ion concentration of aqueous solutions. The average ocean pH is around 8.1, whereas freshwater bodies generally have a pH of around 6-8. Deeper bodies of water may have a higher pH. For more information, visit this \n <a href='https://www.fondriest.com/environmental-measurements/parameters/water-quality/ph/' target='_blank'>link</a>.",
-        Turbidity: "Turbidity measures water clarity in nephelometric turbidity units (NTU). Clarity is determined by the depth that sunlight penetrates in water. For more information, visit this \n <a href='https://www.fondriest.com/environmental-measurements/parameters/water-quality/turbidity-total-suspended-solids-water-clarity/#Turbid2/' target='_blank'>link</a>.",
-        Salinity: "Salinity measures salt concentration in water, and is measured in practical salinity units (PSU). Higher salinity leads to higher conductivity in the water. For more information, visit this \n <a href='https://www.fondriest.com/environmental-measurements/parameters/water-quality/conductivity-salinity-tds/#cond6/' target='_blank'>link</a>.",
-        Temperature: "Water temperature measures average thermal energy in water, and is measured in degrees celsius. Higher temperatures generally lead to higher fish metabolism. For more information, visit this \n <a href='https://www.fondriest.com/environmental-measurements/parameters/water-quality/water-temperature/' target='_blank'>link</a>."
+      const focus_descriptions = {
+          Overview: "",
+          pH: "pH (parts Hydrogen) measures the hydrogen ion concentration of aqueous solutions. The average ocean pH is around 8.1, whereas freshwater bodies generally have a pH of around 6-8. Deeper bodies of water may have a higher pH. For more information, visit this \n <a href='https://www.fondriest.com/environmental-measurements/parameters/water-quality/ph/' target='_blank'>link</a>.",
+          Turbidity: "Turbidity measures water clarity in nephelometric turbidity units (NTU). Clarity is determined by the depth that sunlight penetrates in water. For more information, visit this \n <a href='https://www.fondriest.com/environmental-measurements/parameters/water-quality/turbidity-total-suspended-solids-water-clarity/#Turbid2/' target='_blank'>link</a>.",
+          Salinity: "Salinity measures salt concentration in water, and is measured in practical salinity units (PSU). Higher salinity leads to higher conductivity in the water. For more information, visit this \n <a href='https://www.fondriest.com/environmental-measurements/parameters/water-quality/conductivity-salinity-tds/#cond6/' target='_blank'>link</a>.",
+          Temperature: "Water temperature measures average thermal energy in water, and is measured in degrees celsius. Higher temperatures generally lead to higher fish metabolism. For more information, visit this \n <a href='https://www.fondriest.com/environmental-measurements/parameters/water-quality/water-temperature/' target='_blank'>link</a>."
+      }
+
+      /* returns focus_descriptions */
+      function getFocusDescriptions() {
+        return focus_descriptions;
+      }
+
+      /* Passes relevant info to the iFrame */
+      function passInformation() {
+        return {
+          "chosen_loc" : hover_loc,
+          "data" : data[hover_loc]
+        };
       }
 
       /* Rounding function */
       function round(num, places) {
-        var multiplier = Math.pow(10, places);
-        return Math.round(num * multiplier) / multiplier;
+          let multiplier = Math.pow(10, places);
+          return Math.round(num * multiplier) / multiplier;
       }
 
       /* Finds the distance between two points */
       function distance(a1, b1, a2, b2) {
-        return Math.sqrt(Math.pow(a1-a2, 2) + Math.pow(b1-b2, 2))
+          return Math.sqrt(Math.pow(a1 - a2, 2) + Math.pow(b1 - b2, 2))
       }
 
       /* Finds the distance between two objects, each with a lats and a lng, and a central point, and returns which one is longer */
       function compareDistance(obj1, obj2) {
-        obj1["distance"] = distance(obj1["lat"],obj1["lng"],map_pos["lat"],map_pos["lng"]);
-        obj2["distance"] = distance(obj2["lat"],obj2["lng"],map_pos["lat"],map_pos["lng"]);
-        return obj1["distance"] - obj2["distance"];
+          obj1["distance"] = distance(obj1["lat"], obj1["lng"], map_pos["lat"], map_pos["lng"]);
+          obj2["distance"] = distance(obj2["lat"], obj2["lng"], map_pos["lat"], map_pos["lng"]);
+          return obj1["distance"] - obj2["distance"];
       }
 
       /* Compares two data points by their date in milliseconds */
-      function compare_by_date(a,b) {
-        return a["date"].getTime() - b["date"].getTime()
+      function compareByDate(a, b) {
+          return a["date"] - b["date"]
+      }
+
+      /* Checks to see if cache is valid */
+      /* Returns true if the cache is valid, false if not */
+      function inspectCache() {
+          // checks to see if any of the cached data is undefined
+          if (cache_date === undefined || cache_data === undefined || cache_locs === undefined) {
+            delete localStorage["cache_date"];
+            delete localStorage["cache_data"];
+            delete localStorage["cache_locations"];
+            return false;
+          }
+          // 86400000 is the number of milliseconds in a day
+          if (today - cache_date >= 86400000) {
+            return false;
+          }
+          return true;
+      }
+
+      /* Sets scrolling settings */
+      /* "switch_page" is a boolean equal to true if you are switching pages, and false if you are just resizing a page */
+      function scrollSettings(switch_page) {
+          /* "main_page" is a boolean equal to true if you are on the home page, and false if you are on an indicator page */
+          let main_page = focus == "Default";
+          if (switch_page) { window.scrollTo(0, 0); }
+          if (!main_page && $(window).width() <= 992) {
+              $(".location-map").hide();
+              $(".indicator-left").attr("style", "");
+          } else if (!main_page) {
+            if (focus == "Overview") { $(".location-map").show(); }
+            $(".indicator-left").attr("style", "position:relative;left:18px;");
+          } else if (main_page && $(window).width() <= 575) {
+            $(".indicator-display-div").hide();
+          } else {
+            $(".indicator-display-div").show();
+          }
+      }
+
+      /* edits map on the home screen with query, then sorts locations */
+      function updateHomeMap() {
+      //     // sets query to search box value
+      //     // query will default to 'Portland, Oregon'
+          query = $("#search-box").val() || "Portland, Oregon";
+      //     // Initialize the Geocoder (a bunch of maps stuff)
+        try {
+          let geocoder = new google.maps.Geocoder();
+          if (geocoder) {
+            geocoder.geocode({
+              'address': query
+            }, function (results, status) {
+              if (status == google.maps.GeocoderStatus.OK) {
+                map_pos = {lat: results[0].geometry.location.lat(), lng: results[0].geometry.location.lng()}
+                //                 url = "https://www.google.com/maps/embed/v1/view?key=" + MAPS_API_KEY + "&center=" + map_pos["lat"] + "," + map_pos["lng"] + "&zoom=13&maptype=satellite";
+              }
+              //             // sorts locations
+              sortLocations();
+            });
+          }
+        } catch (_) {
+          window.setTimeout(updateHomeMap, 200);
+        }
       }
 
       /* loadSection() sets the display when a new indicator tab is selected */
       function loadSection(new_focus) {
-        if (focus == new_focus) { return; } // makes sure that the indicator selected is not the previous indicator
-        focus = new_focus; // sets the new chosen indicator
-        $(".loc-page-title").text(new_focus); // changes the title of the page
-        loadDataTable();
-        /* Sets the description of the indicator */
-        $(".wq-information").html(focus_descriptions[focus]);
-        /* Removes all HTML from the div containing the plot.ly graph. */
-        $(".graph-container").html("");
-        if (focus != "Overview") {
-          loadGraph();
-          $(".location-map").hide();
-        } else {
-          /* The following creates an embedded Google Map centered on the location */
-          url = "https://www.google.com/maps/embed/v1/view?key=" + MAPS_API_KEY + "&center=" + data[chosen_loc][data[chosen_loc].length-1]["latitude"] + "," + data[chosen_loc][data[chosen_loc].length-1]["longitude"] + "&zoom=13&maptype=satellite";
-          $(".location-map").show();
-          $(".location-map").attr("src", url);
-        }
+          if (focus == new_focus) {
+              return;
+          }
+          // makes sure that the indicator selected is not the previous indicator
+          focus = new_focus; // sets the new chosen indicator
+          $(".loc-page-title").text(new_focus); // changes the title of the page
+          loadDataTable(chosen_loc);
+          /* Sets the description of the indicator */
+          $(".wq-information").html(getFocusDescriptions()[focus]);
+          /* Removes all HTML from the div containing the plot.ly graph. */
+          $(".graph-container").html("");
+          if (focus != "Overview") {
+              loadGraph(chosen_loc);
+              $(".location-map").hide();
+          } else {
+              /* The following creates an embedded Google Map centered on the location */
+              url = "https://www.google.com/maps/embed/v1/view?key=" + MAPS_API_KEY + "&center=" + data[chosen_loc][data[chosen_loc].length - 1]["latitude"] + "," + data[chosen_loc][data[chosen_loc].length - 1]["longitude"] + "&zoom=13&maptype=satellite";
+              $(".location-map").show();
+              $(".location-map").attr("src", url);
+          }
+          // changes the scrolling settings
+          scrollSettings(true);
       }
 
       /* this function loads the data for the data table on overview/indicator pages */
-      function loadDataTable() {
-        $(".data-table").show();
-        $(".table-body").html("");
-        $(".table-explanation").hide();
-        // for non-overview tables...
-        if (focus != "Overview") {
-          $(".table-head").html(
-            `<tr>
+      function loadDataTable(loc) {
+          $(".data-table").show();
+          $(".table-body").html("");
+          $(".table-explanation").hide();
+          // for non-overview tables...
+          if (focus != "Overview") {
+              $(".table-head").html(
+                  `<tr>
               <th scope="col">Date</th>
               <th scope="col">Time</th>
               <th class="loc-page-title" scope="col">` + focus + `</th>
               <th scope="col">Latitude</th>
               <th scope="col">Longitude</th>
             </tr>`
-          );
-          // reversing the data
-          // I use .slice(0) to clone the list, so that I do not reverse the actual list
-          var reverse_data = data[chosen_loc].slice(0).reverse();
-          // for data_point (dp) in the reversed data
-          for (dp in reverse_data) {
-            data_point = reverse_data[dp];
-            // the following converts Date.getHours() to 12 hour time
-            time_of_day = "AM";
-            hours = data_point["date"].getHours();
-            if (hours > 12) { hours %= 12; time_of_day = "PM"; }
-            // converts date to a string-friendly format
-            date = (data_point["date"].getMonth()+1) + "/" + data_point["date"].getDate() + "/" + data_point["date"].getFullYear();
-            time = (hours + ":" + data_point["date"].getMinutes() + " " + time_of_day);
+              );
+              // reversing the data
+              // I use .slice(0) to clone the list, so that I do not reverse the actual list
+              let reverse_data = data[loc].slice(0).reverse();
+              // for data_point (dp) in the reversed data
+              for (let dp in reverse_data) {
+                  let data_point = reverse_data[dp];
+                  let date_obj = new Date(data_point["date"]);
+                  // the following converts Date.getHours() to 12 hour time
+                  let time_of_day = "AM";
+                  console.log(data_point);
+                  let hours = date_obj.getHours();
+                  if (hours > 12) {
+                      hours %= 12;
+                      time_of_day = "PM";
+                  }
+                  // converts date to a string-friendly format
+                  let date = (date_obj.getMonth() + 1) + "/" + date_obj.getDate() + "/" + date_obj.getFullYear();
+                  let time = (hours + ":" + date_obj.getMinutes() + " " + time_of_day);
 
-            $(".table-body").append(`
-              <tr id="data-table-`+ dp + `">
+                  $(".table-body").append(`
+              <tr id="data-table-` + dp + `">
                 <td>` + date + `</td>
                 <td>` + time + `</td>
                 <td>` + data_point[focus] + `</td>
@@ -134,388 +236,458 @@
                 <td>` + data_point["longitude"] + `</td>
               </tr>
             `)
-          }
-        // for the overview table...
-        } else {
-          $(".table-explanation").show();
-          $(".table-head").html(
-            `<tr>
+              }
+              // for the overview table...
+          } else {
+              $(".table-explanation").show();
+              $(".table-head").html(
+                  `<tr>
               <th scope="col">Indicator</th>
               <th scope="col">Units</th>
               <th scope="col">Average Value</th>
               <th scope="col">Latest Value</th>
               <th scope="col">Trend</th>
             </tr>`
-          );
-          /* "table_info" is the information that will be displayed into the overview table
-            increase:     the sum total increase in value within the past five readings
-            avg_increase: the average increase in value within the past five readings
-            val:          the sum total value of the past five readings
-            avg_val:      the average value of the past five readings
-            total_vals:   the number of readings in the past five readings (will be five unless there are less than five total readings)
-          */
-          var table_info = {
-            pH:{increase:0,avg_increase:0,val:0,avg_val:0,total_vals:0},
-            Turbidity:{increase:0,avg_increase:0,val:0,avg_val:0,total_vals:0},
-            Salinity:{increase:0,avg_increase:0,val:0,avg_val:0,total_vals:0},
-            Temperature:{increase:0,avg_increase:0,val:0,avg_val:0,total_vals:0}
-          }
-          // a list of all indicators
-          indicators = ["Turbidity", "pH", "Salinity", "Temperature"];
-          // a list of all indicators' respective units
-          indicator_units = ["NTU", "--", "PSU", "&#176;C"]
-          num_data_points = data[chosen_loc].length;
-          for (indicator_index in indicators) {
-            // "indicator" is a string (e.g. "pH")
-            indicator = indicators[indicator_index];
-            // for each of the five most recente data points...
-            for (x = num_data_points - 5; x < num_data_points; x+=1) {
-              if (x < 0) { continue; } // continue if x < 0 (i.e. there are less than five recent values)
-              // "data_point" represents one reading, or any particular row on the Google Sheet
-              data_point = data[chosen_loc][x];
-              if (!isNaN(data_point[indicator])) { // if false, that implies this indicator was not measured in this instance
-                table_info[indicator]["val"] += data_point[indicator];
-                table_info[indicator]["total_vals"] += 1;
-                if (x > 0 && x != num_data_points - 5 && !isNaN(data[chosen_loc][x-1][indicator])) { // if there is a valid data point taken before this data point
-                  table_info[indicator]["increase"] += data_point[indicator] - data[chosen_loc][x-1][indicator]; // calculates the increase in value
-                }
+              );
+              /* "table_info" is the information that will be displayed into the overview table
+                increase:     the sum total increase in value within the past five readings
+                avg_increase: the average increase in value within the past five readings
+                val:          the sum total value of the past five readings
+                avg_val:      the average value of the past five readings
+                total_vals:   the number of readings in the past five readings (will be five unless there are less than five total readings)
+              */
+              let table_info = {
+                  pH: {increase: 0, avg_increase: 0, val: 0, avg_val: 0, total_vals: 0},
+                  Turbidity: {increase: 0, avg_increase: 0, val: 0, avg_val: 0, total_vals: 0},
+                  Salinity: {increase: 0, avg_increase: 0, val: 0, avg_val: 0, total_vals: 0},
+                  Temperature: {increase: 0, avg_increase: 0, val: 0, avg_val: 0, total_vals: 0}
               }
-            }
-            // calculates "avg_val" and "avg_increase"
-            table_info[indicator]["avg_val"] = 1.0 * table_info[indicator]["val"] / table_info[indicator]["total_vals"];
-            table_info[indicator]["avg_increase"] = 1.0 * table_info[indicator]["increase"] / table_info[indicator]["total_vals"];
-            // appends data to overview data table
-            $(".table-body").append(`
+              // a list of all indicators
+              let indicators = ["Turbidity", "pH", "Salinity", "Temperature"];
+              // a list of all indicators' respective units
+              let indicator_units = ["NTU", "--", "PSU", "&#176;C"]
+              let num_data_points = data[loc].length;
+              for (let indicator_index in indicators) {
+                  // "indicator" is a string (e.g. "pH")
+                  let indicator = indicators[indicator_index];
+                  // for each of the five most recente data points...
+                  for (let x = num_data_points - 5; x < num_data_points; x += 1) {
+                      if (x < 0) {
+                          continue;
+                      } // continue if x < 0 (i.e. there are less than five recent values)
+                      // "data_point" represents one reading, or any particular row on the Google Sheet
+                      let data_point = data[loc][x];
+                      if (!isNaN(data_point[indicator])) { // if false, that implies this indicator was not measured in this instance
+                          table_info[indicator]["val"] += data_point[indicator];
+                          table_info[indicator]["total_vals"] += 1;
+                          if (x > 0 && x != num_data_points - 5 && !isNaN(data[loc][x - 1][indicator])) { // if there is a valid data point taken before this data point
+                              table_info[indicator]["increase"] += data_point[indicator] - data[loc][x - 1][indicator]; // calculates the increase in value
+                          }
+                      }
+                  }
+                  // calculates "avg_val" and "avg_increase"
+                  table_info[indicator]["avg_val"] = 1.0 * table_info[indicator]["val"] / table_info[indicator]["total_vals"];
+                  table_info[indicator]["avg_increase"] = 1.0 * table_info[indicator]["increase"] / table_info[indicator]["total_vals"];
+                  // appends data to overview data table
+                  $(".table-body").append(`
               <tr>
                 <td>` + indicator + `</td>
                 <td>` + indicator_units[indicator_index] + `</td>
                 <td>` + round(table_info[indicator]["avg_val"], 3) + `
-                <td>` + round(data[chosen_loc][num_data_points - 1][indicator], 3) + `</td>
+                <td>` + round(data[loc][num_data_points - 1][indicator], 3) + `</td>
                 <td>` + round(table_info[indicator]["avg_increase"], 3) + `</td>
               </tr>
             `);
+              }
           }
-        }
       }
+
       /* This functions loads all the data from Google Sheets */
       function uploadValues() {
-        // "values" is an array of all location names
-        getValues('B2:B').then(values => {
-          if (values.length > 0) {
-            // "table_rows" is an array of arrays, each array representing a row on the spreadsheet
-            getValues('A2:I').then(table_rows => {
-              for (array in table_rows) {
-                // "sheet_data" is one data point, or row
-                var sheet_data = table_rows[array];
-                if (data[sheet_data[1]] == undefined) { // true if this is a new location
-                  data[sheet_data[1]] = []
-                  locations.push(
-                    {name:sheet_data[1],lat:sheet_data[2],lng:sheet_data[3]}
-                  );
-                }
-                data[sheet_data[1]].push(
-                  {
-                    date:new Date(sheet_data[0]),
-                    name:sheet_data[1],
-                    latitude:sheet_data[2],
-                    longitude:sheet_data[3],
-                    accuracy:sheet_data[4],
-                    Salinity:sheet_data[5],
-                    Turbidity:sheet_data[6],
-                    pH:sheet_data[7],
-                    Temperature:sheet_data[8]
-                  }
-                );
+          // "values" is an array of all location names
+          getValues('B2:B').then(values => {
+              if (values.length > 0) {
+                  // "table_rows" is an array of arrays, each array representing a row on the spreadsheet
+                  getValues('A2:I').then(table_rows => {
+                      for (let array in table_rows) {
+                          // "sheet_data" is one data point, or row
+                          let sheet_data = table_rows[array];
+                          if (data[sheet_data[1]] === undefined) { // true if this is a new location
+                              data[sheet_data[1]] = []
+                              locations.push(
+                                  {name: sheet_data[1], lat: sheet_data[2], lng: sheet_data[3]}
+                              );
+                          }
+                          data[sheet_data[1]].push(
+                              {
+                                  date: new Date(sheet_data[0]).getTime(),
+                                  name: sheet_data[1],
+                                  latitude: sheet_data[2],
+                                  longitude: sheet_data[3],
+                                  accuracy: sheet_data[4],
+                                  Salinity: sheet_data[5],
+                                  Turbidity: sheet_data[6],
+                                  pH: sheet_data[7],
+                                  Temperature: sheet_data[8]
+                              }
+                          );
+                      }
+                      /* The following sorts all data by date, newest to oldest */
+                      let data_keys = Object.keys(data);
+                      for (let loc in data_keys) {
+                          data[data_keys[loc]].sort(compareByDate);
+                      }
+                      /* Locally stores data */
+                      localStorage["cache_date"] = today.toString();
+                      localStorage["cache_data"] = JSON.stringify(data);
+                      localStorage["cache_locations"] = JSON.stringify(locations);
+                      /* Updates the map and sorts locations */
+                      updateHomeMap();
+                  });
               }
-              /* The following sorts all data by date, newest to oldest */
-              var data_keys = Object.keys(data);
-              for (loc in data_keys) {
-                data[data_keys[loc]].sort(compare_by_date);
-              }
-              /* sortLocations() sorts each locations by distance from map_pos for display on the home screen */
-              sortLocations();
-            });
-          }
-        });
+          });
+      }
+
+      /* */
+      function loadNewIndicatorDisplay() {
+        $(".indicator-display-div").html("");
+        $(".indicator-display-div").append(`
+          <iframe class="indicator-display" src="indicatorPage.html">
+          </iframe>
+        `);
       }
 
       /* Loads the plot.ly graph on an indicator page */
-      function loadGraph() {
-        /* Sets the graph's default HTML */
-        $(".graph-container").append(`<div id="tester" style="width:100%;height:300px;position:relative;top:15px;"></div>`);
-        /* "dates" is a list of all the dates for a location */
-        /* "values" is a list of all the values of the given indicator for a location */
-        var dates = []
-        var values = []
-        /* runs through each data point (dp) in the data */
-        for (dp in data[chosen_loc]) {
-          data_point = data[chosen_loc][dp];
-          if (data_point[focus] != undefined) {
-            // pushes the relevant info into the lists
-            dates.push(data_point["date"]);
-            values.push(data_point[focus]);
+      function loadGraph(loc) {
+          /* Sets the graph's default HTML */
+          $(".graph-container").append(`<div id="tester" style="width:100%;height:300px;position:relative;top:15px;"></div>`);
+          /* "dates" is a list of all the dates for a location */
+          /* "values" is a list of all the values of the given indicator for a location */
+          let dates = []
+          let values = []
+          /* runs through each data point (dp) in the data */
+          for (let dp in data[loc]) {
+              data_point = data[loc][dp];
+              if (data_point[focus] !== undefined) {
+                  // pushes the relevant info into the lists
+                  dates.push(new Date(data_point["date"]));
+                  values.push(data_point[focus]);
+              }
           }
-        }
-        // inputs data into plot.ly graph
-      	TESTER = document.getElementById('tester');
-      	Plotly.plot(TESTER, [{
-      	x: dates,
-      	y: values }], {
-      	margin: { t: 0 } } );
+          // inputs data into plot.ly graph
+          TESTER = document.getElementById('tester');
+          Plotly.plot(TESTER, [{
+              x: dates,
+              y: values
+          }], {
+              margin: {t: 0}
+          });
       }
 
       /* sortLocations() sorts each locations by distance from map_pos for display on the home screen */
       function sortLocations() {
-        /* Erasing everything in the loc-options div */
-        $(".loc-options").html("<br>");
-        $(".loc-options").css("height","78vh");
-        /* The locations with names found in the query */
-        let visible_locations = []
-        /* Goes through all locations and adds ones that match the query to visible_locations */
-        for (loc_index in locations) {
-          loc = locations[loc_index];
-          if (loc["name"].toLowerCase().replace(/\s/g, '').search(query.toLowerCase().replace(/\s/g, '')) >= 0) {
-            visible_locations.push(loc);
+          /* Erasing everything in the loc-options div */
+          $(".loc-table-body").html("");
+          $(".load-message").hide();
+          /* Changes height settings depending on window size */
+          // resizeLocationOptions();
+          /* The locations with names found in the query */
+          /* fuse.js fuzzy search */
+          let options = {
+              shouldSort: true,
+              threshold: 0.375,
+              location: 0,
+              distance: 100,
+              maxPatternLength: 32,
+              minMatchCharLength: 1,
+              keys: [
+                  "name",
+                  "lat",
+                  "lng"
+              ]
+          };
+          console.log("HI");
+          let fuse = new Fuse(locations, options);
+          let display_distance = true;
+          let visible_locations = fuse.search(query);
+          /* If location not found, sorts by closeness of address. */
+          if (visible_locations.length == 0) {
+              visible_locations = locations;
+              /* This physically sorts the list by distance from query */
+              visible_locations.sort(compareDistance);
+              $(".sort-message").text("Sorted by distance from '" + query + "'.");
+          } else {
+              $(".sort-message").text("Sorted by closest match to query '" + query + "'.");
+              display_distance = false;
           }
-        }
-        /* If location not found, sorts by closeness of address. */
-        if (visible_locations.length == 0) { visible_locations = locations; }
-        /* This physically sorts the list */
-        visible_locations.sort(compareDistance);
-        /* For each location (sorted by distance)... */
-        for (x in visible_locations) {
-          // "loc" is any location
-          loc = visible_locations[x];
-          // the following is the HTML for the row added to loc-options for this location
-          $(".loc-options").append(`
-            <button class="btn loc-select" lat="` + loc["lat"] + `"  lng="` + loc["lng"] + `" name="` + loc["name"] + `">Select</button>
-            <span>` + loc["name"] + `; ` + Math.round(loc["distance"]*69) + ` miles away</span>
-          `);
-          // adds an <hr> unless this is the last location
-          if (parseInt(x)+1 != visible_locations.length) {
-            $(".loc-options").append(`<hr/>`);
+          /* For each location (sorted by distance)... */
+          for (let x in visible_locations) {
+              // "loc" is any location
+              let loc = visible_locations[x];
+              // the text that will be displayed next to the button
+              let text = loc["name"];
+              if (display_distance) { text += ("; " + Math.round(loc["distance"] * 69) + " miles away") }
+              // the following is the HTML for the row added to loc-options for this location
+              // $(".loc-options").append(`
+              //   <button class="btn loc-select" lat="` + loc["lat"] + `"  lng="` + loc["lng"] + `" name="` + loc["name"] + `">Select</button>
+              //   <span>` + text + `</span>
+              // `);
+              $(".loc-table-body").append(`
+                <tr class="loc-table-row" name="` + loc["name"] + `" + style="height:8vh">
+                    <td>
+                        <button class="btn loc-select" lat="` + loc["lat"] + `"  lng="` + loc["lng"] + `" name="` + loc["name"] + `">Select</button>
+                        <span>` + text + `</span>
+                    </td>
+                </tr>
+              `);
+              // adds an <hr> unless this is the last location
+              // if (parseInt(x) + 1 != visible_locations.length) {
+              //     $(".loc-options").append(`<hr/>`);
+              // }
           }
-        }
-        /* the EventListener for the buttons */
-        $(".loc-select").click(function() {
-          chosen_loc = $(this).attr("name"); // sets the chosen location to be this location
-          $(".loc-page").show(); // shows the page for the location
-          $(".home").hide(); // hides the home screen
-          $(".title").text(chosen_loc); // sets the title of the location page
-          loadSection("Overview"); // loads the Overview section
-        });
-        // sets height of loc-options to fit screen well
-        // $(".loc-options").css("height",$(window).height()-130);
+          /* the EventListener for the buttons */
+          $(".loc-select").click(function () {
+              chosen_loc = $(this).attr("name"); // sets the chosen location to be this location
+              $(".loc-page").show(); // shows the page for the location
+              $(".home").hide(); // hides the home screen
+              $(".title").text(chosen_loc); // sets the title of the location page
+              loadSection("Overview"); // loads the Overview section
+          });
+          $(".loc-table-row").mouseover(function () {
+              if (hover_loc === $(this).attr("name")) { return; }
+              hover_loc = $(this).attr("name");
+              loadNewIndicatorDisplay();
+          });
+          // sets height of loc-options to fit screen well
+          // $(".loc-options").css("height",$(window).height()-130);
       }
-      $(document).ready(function(){
-        $(".loc-page").hide(); // hides the location page
-        // when the back button is clicked...
-        $(".back").click(function(){
-          $(".home").show();
-          $(".loc-page").hide();
-          // resets the selected location and the selected indicator
-          chosen_loc = "Place";
-          focus = "Default";
-          // resets the indicator button displays
-          $(".option").removeClass("selected-option");
-          $(".overview-btn").addClass("selected-option");
-        });
-        // when an indicator-option button is clicked...
-        $(".option").click(function() {
-          // resets all indicator button displays, and then sets display for this button
-          $(".option").removeClass("selected-option");
-          $(this).addClass("selected-option");
-          // loads the correct section
-          loadSection($(this).attr("name"));
-        });
-        // exports sheets to excel
-        $(".excel-export").click(function(){
-          JSONToCSVConvertor(data[chosen_loc], chosen_loc);
-        });
-        // whenever we have the search box selected and we press a key
-        $('#search-box').keypress(function(e){
-          // if the key is "enter"
-          if (e.keyCode == 13) {
-            // submit the query
-            $('.coordinates').click();
+
+      $(document).ready(function () {
+          $(".loc-page").hide(); // hides the location page
+          // when the back button is clicked...
+          $(".back").click(function () {
+              $(".home").show();
+              $(".loc-page").hide();
+              // resets the selected location and the selected indicator
+              chosen_loc = "Place";
+              focus = "Default";
+              // resets scroll position and settings
+              scrollSettings(true);
+              // resets the indicator button displays
+              $(".option").removeClass("selected-option");
+              $(".overview-btn").addClass("selected-option");
+          });
+          // when an indicator-option button is clicked...
+          $(".option").click(function () {
+              // resets all indicator button displays, and then sets display for this button
+              $(".option").removeClass("selected-option");
+              $(this).addClass("selected-option");
+              // loads the correct section
+              loadSection($(this).attr("name"));
+          });
+          // exports sheets to excel
+          $(".excel-export").click(function () {
+              JSONToCSVConvertor(data[chosen_loc], chosen_loc);
+          });
+          // whenever we have the search box selected and we press a key
+          $('#search-box').keypress(function (e) {
+              // if the key is "enter"
+              if (e.keyCode == 13) {
+                  // submit the query
+                  $('.coordinates').click();
+              }
+          });
+          // submit button for searching
+          $(".coordinates").click(function () {
+              updateHomeMap();
+          });
+          /* Loads new data from cache or from google sheets */
+          if (!inspectCache()) {
+            // uploads all data from Google Sheets
+            window.setTimeout(uploadValues, 250);
+          } else {
+            data = cache_data;
+            locations = cache_locs;
+            window.setTimeout(updateHomeMap, 10);
           }
-        });
-        // submit button for searching
-        $(".coordinates").click(function() {
-          // sets query to search box value
-          query = $("#search-box").val();
-          // address defaults to 'Portland, Oregon'
-          let address = query || 'Portland, Oregon';
-          // Initialize the Geocoder (a bunch of maps stuff)
-          geocoder = new google.maps.Geocoder();
-          if (geocoder) {
-              geocoder.geocode({
-                  'address': address
-              }, function (results, status) {
-                  if (status == google.maps.GeocoderStatus.OK) {
-                    map_pos = {lat:results[0].geometry.location.lat(), lng:results[0].geometry.location.lng()}
-                    url = "https://www.google.com/maps/embed/v1/view?key=" + MAPS_API_KEY + "&center=" + map_pos["lat"] + "," + map_pos["lng"] + "&zoom=13&maptype=satellite";
-                    $(".home-map").attr("src",url);
-                  }
-                  // sorts locations
-                  sortLocations();
-              });
-          }
-        });
-        // uploads all data from Google Sheets
-        window.setTimeout(uploadValues,250);
       });
 
       // On resize
-      $(window).resize(function() {
-        // reloads the graph so that its size fits the screen
-        if (focus != "Overview" && focus != "Default") { $(".graph-container").html(""); loadGraph(); }
-        // sets height of loc-options to fit screen well
-        // $(".loc-options").css("height", $(window).height()-130);
+      $(window).resize(function () {
+          // reloads the graph so that its size fits the screen
+          if (focus != "Overview" && focus != "Default") {
+              $(".graph-container").html("");
+              loadGraph(chosen_loc);
+          }
+          // Resets height of loc-options
+          // resizeLocationOptions();
+          scrollSettings(false);
+
       });
 
       // from https://stackoverflow.com/questions/29230518/how-to-export-json-data-to-excel-file-using-javascript
       // converts a JSON file to an excel sheet and downloads it
       function JSONToCSVConvertor(JSONData, ReportTitle) {
-        //If JSONData is not an object then JSON.parse will parse the JSON string in an Object
-        var arrData = typeof JSONData != 'object' ? JSON.parse(JSONData) : JSONData;
-        var CSV = '';
-        //This condition will generate the Label/Header
-        if (ShowLabel) {
-            var row = "";
-            //This loop will extract the label from 1st index of on array
-            for (var index in arrData[0]) {
-                //Now convert each value to string and comma-seprated
-                row += index.charAt(0).toUpperCase() + index.slice(1)+ ',';
-            }
-            row = row.slice(0, -1);
-            //append Label row with line break
-            CSV += row + '\r\n';
-        }
-        //1st loop is to extract each row
-        for (var i = 0; i < arrData.length; i++) {
-            var row = "";
-            //2nd loop will extract each column and convert it in string comma-seprated
-            for (var index in arrData[i]) {
-                row += '"' + arrData[i][index] + '",';
-                console.log(arrData[i][index]);
-            }
-            row.slice(0, row.length - 1);
-            //add a line break after each row
-            CSV += row + '\r\n';
-        }
-        if (CSV == '') {
-            alert("Invalid data");
-            return;
-        }
-        //Generate a file name
-        var fileName = "Water_Quality_";
-        //this will remove the blank-spaces from the title and replace it with an underscore
-        fileName += ReportTitle.replace(/ /g,"_");
-        //Initialize file format you want csv or xls
-        var uri = 'data:text/csv;charset=utf-8,' + escape(CSV);
-        // Now the little tricky part.
-        // you can use either>> window.open(uri);
-        // but this will not work in some browsers
-        // or you will not get the correct file extension
-        // this trick will generate a temp <a /> tag
-        var link = document.createElement("a");
-        link.href = uri;
-        //set the visibility hidden so it will not effect on your web-layout
-        link.style = "visibility:hidden";
-        link.download = fileName + ".csv";
-        //this part will append the anchor tag and remove it after automatic click
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+          //If JSONData is not an object then JSON.parse will parse the JSON string in an Object
+          let arrData = typeof JSONData != 'object' ? JSON.parse(JSONData) : JSONData;
+          let CSV = '';
+          //This condition will generate the Label/Header
+          let row = "";
+          //This loop will extract the label from 1st index of on array
+          for (let index in arrData[0]) {
+              //Now convert each value to string and comma-seprated
+              row += index.charAt(0).toUpperCase() + index.slice(1) + ',';
+          }
+          row = row.slice(0, -1);
+          //append Label row with line break
+          CSV += row + '\r\n';
+          //1st loop is to extract each row
+          for (let i = 0; i < arrData.length; i++) {
+              let row = "";
+              //2nd loop will extract each column and convert it in string comma-separated
+              for (let index in arrData[i]) {
+                  row += '"' + arrData[i][index] + '",';
+                  console.log(arrData[i][index]);
+              }
+              row.slice(0, row.length - 1);
+              //add a line break after each row
+              CSV += row + '\r\n';
+          }
+          if (CSV == '') {
+              alert("Invalid data");
+              return;
+          }
+          //Generate a file name
+          let fileName = "Water_Quality_";
+          //this will remove the blank-spaces from the title and replace it with an underscore
+          fileName += ReportTitle.replace(/ /g, "_");
+          //Initialize file format you want csv or xls
+          let uri = 'data:text/csv;charset=utf-8,' + escape(CSV);
+          // Now the little tricky part.
+          // you can use either>> window.open(uri);
+          // but this will not work in some browsers
+          // or you will not get the correct file extension
+          // this trick will generate a temp <a /> tag
+          let link = document.createElement("a");
+          link.href = uri;
+          //set the visibility hidden so it will not effect on your web-layout
+          link.style = "visibility:hidden";
+          link.download = fileName + ".csv";
+          //this part will append the anchor tag and remove it after automatic click
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
       }
-    </script>
-  </head>
-  <body>
-    <!-- Home Page -->
-    <div class="home">
-      <!-- Banner at Top of Home Page -->
-      <div class="upper-banner">
-        <div style="height:50px;" class="transparent-layer">
-          <h1 class="banner-title">WaterWand</h1>
-        </div>
+  </script>
+</head>
+<body class="main-body">
+<!-- Home Page -->
+<div class="home">
+  <!-- Banner at Top of Home Page -->
+  <div class="upper-banner">
+    <div style="height:50px;" class="transparent-layer">
+      <h1 class="banner-title">WaterWand</h1>
+    </div>
+  </div>
+  <!-- The Rest of Home Page -->
+  <div class="home-container">
+    <div style="margin:auto;position:relative;left:3.75vw;" class="row">
+        <!-- Search Options -->
+        <input id="search-box" type="text" placeholder="Enter name or address"/>
+        <button style="position:relative;top:5px;width:15vw;" class="btn coordinates">Submit</button>
+        <br/>
+        <br />
+    </div>
+    <div class="row">
+      <!--<div class="col-sm-1"></div>-->
+      <!-- Location Options -->
+      <div style="font-family:oxygen" class="loc-options">
+        <p class="load-message" style="text-align:center">Loading data...</p>
+        <table class="table loc-table table-striped table-bordered">
+          <thead class="thead-dark">
+          <tr>
+            <th class="sort-message"></th>
+          </tr>
+          </thead>
+          <tbody class="loc-table-body">
+          </tbody>
+        </table>
       </div>
-      <!-- The Rest of Home Page -->
-      <div class="row home-container">
-        <div class="col-lg-1"></div>
-        <div style="text-align:center" class="col-lg-5">
-          <!-- Search Options -->
-          <input id="search-box" type="text" placeholder="Enter name or address"/>
-          <button style="position:relative;top:5px;" class="btn coordinates">Submit</button>
-          <br />
-          <!-- Map Embed -->
-          <iframe class="home-map" width="400" height="350" frameborder="0" style="border:0;position:relative;top:10px;" allowfullscreen="">
-          </iframe>
+        <!-- Indicator Display -->
+        <div class="indicator-display-div">
         </div>
-        <!-- Location Options -->
-        <div style="font-family:oxygen;left:5px" class="loc-options col-lg-5">
-          <br/>
-          <p style="text-align:center">Loading data...</p>
-        </div>
-        <div class="col-lg-1"></div>
+    </div>
+  </div>
+</div>
+<!-- Location Page -->
+<div style="text-align:center" class="loc-page">
+  <!-- Banner at Top of Location Page -->
+  <div class="upper-banner">
+    <button class="btn btn-dark back">Back</button>
+    <button class="btn excel-export">Export to Excel</button>
+    <div class="transparent-layer">
+      <br/>
+      <h1 class="title banner-title">Place</h1>
+      <!-- Indicator Options -->
+      <div class="btn-group mr-2" role="group" aria-label="First group">
+        <button type="button" name="Overview" class="btn option selected-option overview-btn">Overview</button>
+        <button type="button" name="Turbidity" class="btn option">Turbidity</button>
+        <button type="button" name="pH" class="btn option">pH</button>
+        <button type="button" name="Salinity" class="btn option">Salinity</button>
+        <button type="button" name="Temperature" class="btn option">Temperature</button>
       </div>
     </div>
-    <!-- Location Page -->
-    <div style="text-align:center" class="loc-page">
-      <!-- Banner at Top of Location Page -->
-      <div class="upper-banner">
-        <button class="btn btn-dark back">Back</button>
-        <button class="btn excel-export">Export to Excel</button>
-        <div class="transparent-layer">
-          <br />
-          <h1 class="title banner-title">Place</h1>
-          <!-- Indicator Options -->
-          <div class="btn-group mr-2" role="group" aria-label="First group">
-            <button type="button" name="Overview" class="btn option selected-option overview-btn">Overview</button>
-            <button type="button" name="Turbidity" class="btn option">Turbidity</button>
-            <button type="button" name="pH" class="btn option">pH</button>
-            <button type="button" name="Salinity" class="btn option">Salinity</button>
-            <button type="button" name="Temperature" class="btn option">Temperature</button>
-          </div>
-        </div>
+  </div>
+  <!-- The Rest of Location Page -->
+  <div class="row loc-page-main">
+    <!-- Left Column -->
+    <div style="position:relative;left:18px;" class="indicator-left col-lg-6">
+      <br>
+      <h1 class="loc-page-title">Overview</h1>
+      <!-- Data Table -->
+      <div class="table-div">
+        <table class="table table-hover data-table">
+          <thead class="table-head">
+          </thead>
+          <tbody class="table-body">
+          </tbody>
+        </table>
       </div>
-      <!-- The Rest of Location Page -->
-      <div class="row loc-page-main">
-        <!-- Left Column -->
-        <div style="position:relative;left:18px;" class="col-sm-6">
-          <br>
-          <h1 class="loc-page-title">Overview</h1>
-          <!-- Data Table -->
-          <div class="table-div">
-            <table class="table data-table">
-              <thead class="table-head">
-              </thead>
-              <tbody class="table-body">
-              </tbody>
-            </table>
-          </div>
-          <!-- Table Explanation -->
-          <span style="font-size:12px;" class="table-explanation">Average Value averages the last five results. Trend shows the average increase/decrease through the last five results.</span>
-          <br />
-        </div>
-        <!-- Right Column -->
-        <div style="text-align:left" class="col-sm-6">
-          <!-- Plot.ly Graph -->
-          <div class="graph-container"></div>
-          <!-- Map Embed -->
-          <iframe style="position:relative;left:80px;top:10px;" class="location-map" width="400" height="350" frameborder="0" style="border:0" allowfullscreen="">
-          </iframe>
-          <!-- Water Quality Information -->
-          <p style="z-index:20;position:absolute;margin-left:1%;margin-right:5%;" class="wq-information"></p>
-        </div>
-      </div>
+      <!-- Table Explanation -->
+      <span style="font-size:12px;" class="table-explanation">Average Value averages the last five results. Trend shows the average increase/decrease through the last five results.</span>
+      <br/>
     </div>
-    <!-- Links to SurfRider and Team 1540 -->
-    <a href="http://www.surfrider.org/blue-water-task-force" target='_blank'>
-      <img style="height:7.5vh;position:absolute;bottom:0.5vh;right:0.5vh;" src="bluewater.png" />
-    </a>
-    <a href="http://team1540.org" target='_blank'>
-      <img style="height:7.5vh;position:absolute;bottom:0.5vh;right:8.5vh;" src="flamingchickens.png" />
-    </a>
-  </body>
+    <!-- Right Column -->
+    <div style="text-align:left" class="col-lg-6">
+      <!-- Plot.ly Graph -->
+      <div class="graph-container"></div>
+      <!-- Map Embed -->
+      <iframe style="position:relative;left:23%;top:10px;" class="location-map" width="400" height="350"
+              frameborder="0" style="border:0" allowfullscreen="">
+      </iframe>
+      <!-- Water Quality Information -->
+      <p style="z-index:20;position:absolute;margin-left:1%;margin-right:5%;" class="wq-information"></p>
+    </div>
+  </div>
+</div>
+<ul hidden>
+  <li><a class="active" href="#home">Home</a></li>
+  <li><a href="#news">News</a></li>
+  <li><a href="#contact">Contact</a></li>
+  <li><a href="#about">About</a></li>
+</ul>
+<!--<div style="position:fixed;bottom:5px;right:5px;" class="lower-banner">-->
+  <!--&lt;!&ndash; Links to SurfRider and Team 1540 &ndash;&gt;-->
+  <!--<a href="http://team1540.org" target='_blank'>-->
+    <!--<img class="logo" src="flamingchickens.png"/>-->
+  <!--</a>-->
+  <!--<a href="http://www.surfrider.org/blue-water-task-force" target='_blank'>-->
+    <!--<img class="logo" src="bluewater.png"/>-->
+  <!--</a>-->
+  <!--<a href="http://www.surfrider.org/blue-water-task-force" target='_blank'>-->
+    <!--<img class="logo" src="surfrider.png"/>-->
+  <!--</a>-->
+<!--</div>-->
+<link rel="stylesheet" href="style.css"></link>
+</body>
 </html>
