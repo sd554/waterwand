@@ -30,11 +30,14 @@
       const CLIENT_ID = secret["client_sheets_id"]; // Google sheets client ID
       const MAPS_API_KEY = secret["maps_api_key"]; // Google maps API key
 
+      // var geocoder;
+      // establishGeocoder();
+
       $(document).ready(function () {
           $(".maps_script").attr("src", "//maps.googleapis.com/maps/api/js?key=" + MAPS_API_KEY);
       });
 
-      let map_pos = {lat: 45.5122, lng: -122.6587} // The current home screen map position
+      let map_pos = {lat: 45.5122, lng: -122.6587}
       let query = ""; // The query in the search bar
       let chosen_loc = "Place"; // The current location that is selected
       let hover_loc = "Place"; // The previous hovered location.
@@ -105,6 +108,12 @@
           return a["date"] - b["date"]
       }
 
+      /* Compares two names */
+      function compareByName(a, b) {
+        if (a["name"] > b["name"]) { return 1; }
+        return -1;
+      }
+
       /* Checks to see if cache is valid */
       /* Returns true if the cache is valid, false if not */
       function inspectCache() {
@@ -121,6 +130,15 @@
           }
           return true;
       }
+
+      // function establishGeocoder() {
+      //   try {
+      //     geocoder = new google.maps.Geocoder();
+      //     updateHomeMap();
+      //   } catch (_) {
+      //     window.setTimeout(establishGeocoder, 200);
+      //   }
+      // }
 
       /* Sets scrolling settings */
       /* "switch_page" is a boolean equal to true if you are switching pages, and false if you are just resizing a page */
@@ -142,29 +160,28 @@
       }
 
       /* edits map on the home screen with query, then sorts locations */
-      function updateHomeMap() {
-      //     // sets query to search box value
-      //     // query will default to 'Portland, Oregon'
-          query = $("#search-box").val() || "Portland, Oregon";
-      //     // Initialize the Geocoder (a bunch of maps stuff)
-        try {
-          let geocoder = new google.maps.Geocoder();
-          if (geocoder) {
-            geocoder.geocode({
-              'address': query
-            }, function (results, status) {
-              if (status == google.maps.GeocoderStatus.OK) {
-                map_pos = {lat: results[0].geometry.location.lat(), lng: results[0].geometry.location.lng()}
-                //                 url = "https://www.google.com/maps/embed/v1/view?key=" + MAPS_API_KEY + "&center=" + map_pos["lat"] + "," + map_pos["lng"] + "&zoom=13&maptype=satellite";
-              }
-              //             // sorts locations
-              sortLocations();
-            });
-          }
-        } catch (_) {
-          window.setTimeout(updateHomeMap, 200);
-        }
-      }
+      // function updateHomeMap() {
+      // //     // sets query to search box value
+      // //     // query will default to 'Portland, Oregon'
+      //     query = $("#search-box").val() || "Portland, Oregon";
+      // //     // Initialize the Geocoder (a bunch of maps stuff)
+      //     if (geocoder) {
+      //       geocoder.geocode({
+      //         'address': query
+      //       }, function (results, status) {
+      //     //     // if (results.size > 0) {
+      //         if (status === google.maps.GeocoderStatus.OK) {
+      //           console.log(query);
+      //           console.log(map_pos);
+      //           map_pos = {lat: results[0].geometry.location.lat(), lng: results[0].geometry.location.lng()}
+      //           console.log(map_pos);
+      //           //       //                 url = "https://www.google.com/maps/embed/v1/view?key=" + MAPS_API_KEY + "&center=" + map_pos["lat"] + "," + map_pos["lng"] + "&zoom=13&maptype=satellite";
+      //         }
+      //     //  sorts locations
+      //         sortLocations();
+      //       });
+      //     }
+      // }
 
       /* loadSection() sets the display when a new indicator tab is selected */
       function loadSection(new_focus) {
@@ -197,6 +214,7 @@
           $(".data-table").show();
           $(".table-body").html("");
           $(".table-explanation").hide();
+          $(".last-collected").hide();
           // for non-overview tables...
           if (focus != "Overview") {
               $(".table-head").html(
@@ -206,6 +224,7 @@
               <th class="loc-page-title" scope="col">` + focus + `</th>
               <th scope="col">Latitude</th>
               <th scope="col">Longitude</th>
+              <th style="width:10vw" scope="col">Notes</th>
             </tr>`
               );
               // reversing the data
@@ -217,7 +236,6 @@
                   let date_obj = new Date(data_point["date"]);
                   // the following converts Date.getHours() to 12 hour time
                   let time_of_day = "AM";
-                  console.log(data_point);
                   let hours = date_obj.getHours();
                   if (hours > 12) {
                       hours %= 12;
@@ -234,20 +252,22 @@
                 <td>` + data_point[focus] + `</td>
                 <td>` + data_point["latitude"] + `</td>
                 <td>` + data_point["longitude"] + `</td>
+                <td>` + data_point["description"] +  `</td>
               </tr>
             `)
               }
               // for the overview table...
           } else {
               $(".table-explanation").show();
+              $(".last-collected").show();
               $(".table-head").html(
                   `<tr>
-              <th scope="col">Indicator</th>
-              <th scope="col">Units</th>
-              <th scope="col">Average Value</th>
-              <th scope="col">Latest Value</th>
-              <th scope="col">Trend</th>
-            </tr>`
+                     <th scope="col">Indicator</th>
+                     <th scope="col">Units</th>
+                     <th scope="col">Average Value</th>
+                     <th scope="col">Latest Value</th>
+                     <th scope="col">Trend</th>
+                   </tr>`
               );
               /* "table_info" is the information that will be displayed into the overview table
                 increase:     the sum total increase in value within the past five readings
@@ -284,6 +304,11 @@
                               table_info[indicator]["increase"] += data_point[indicator] - data[loc][x - 1][indicator]; // calculates the increase in value
                           }
                       }
+                      if (x == num_data_points - 1) {
+                        let latest_point_date = new Date(data_point["date"]);
+                        let display_date = (latest_point_date.getMonth() + 1) + "/" + latest_point_date.getDate() + "/" + latest_point_date.getFullYear();
+                        $(".last-collected").text("Data last collected " + display_date + ".");
+                      }
                   }
                   // calculates "avg_val" and "avg_increase"
                   table_info[indicator]["avg_val"] = 1.0 * table_info[indicator]["val"] / table_info[indicator]["total_vals"];
@@ -308,29 +333,31 @@
           getValues('B2:B').then(values => {
               if (values.length > 0) {
                   // "table_rows" is an array of arrays, each array representing a row on the spreadsheet
-                  getValues('A2:I').then(table_rows => {
+                  getValues('A2:J').then(table_rows => {
                       for (let array in table_rows) {
                           // "sheet_data" is one data point, or row
                           let sheet_data = table_rows[array];
                           if (data[sheet_data[1]] === undefined) { // true if this is a new location
                               data[sheet_data[1]] = []
                               locations.push(
-                                  {name: sheet_data[1], lat: sheet_data[2], lng: sheet_data[3]}
+                                  {name: sheet_data[1], lat: sheet_data[3], lng: sheet_data[4]}
                               );
                           }
                           data[sheet_data[1]].push(
                               {
-                                  date: new Date(sheet_data[0]).getTime(),
+                                  date: sheet_data[0],
                                   name: sheet_data[1],
-                                  latitude: sheet_data[2],
-                                  longitude: sheet_data[3],
-                                  accuracy: sheet_data[4],
-                                  Salinity: sheet_data[5],
-                                  Turbidity: sheet_data[6],
-                                  pH: sheet_data[7],
-                                  Temperature: sheet_data[8]
+                                  description: sheet_data[2],
+                                  latitude: sheet_data[3],
+                                  longitude: sheet_data[4],
+                                  accuracy: sheet_data[5],
+                                  Salinity: sheet_data[6],
+                                  Turbidity: sheet_data[7],
+                                  pH: sheet_data[8],
+                                  Temperature: sheet_data[9]
                               }
                           );
+                          console.log(sheet_data);
                       }
                       /* The following sorts all data by date, newest to oldest */
                       let data_keys = Object.keys(data);
@@ -342,7 +369,8 @@
                       localStorage["cache_data"] = JSON.stringify(data);
                       localStorage["cache_locations"] = JSON.stringify(locations);
                       /* Updates the map and sorts locations */
-                      updateHomeMap();
+                      query = ""
+                      sortLocations();
                   });
               }
           });
@@ -395,7 +423,7 @@
           /* fuse.js fuzzy search */
           let options = {
               shouldSort: true,
-              threshold: 0.375,
+              threshold: 1.0,
               location: 0,
               distance: 100,
               maxPatternLength: 32,
@@ -406,27 +434,22 @@
                   "lng"
               ]
           };
-          console.log("HI");
           let fuse = new Fuse(locations, options);
           let display_distance = true;
-          let visible_locations = fuse.search(query);
-          /* If location not found, sorts by closeness of address. */
-          if (visible_locations.length == 0) {
-              visible_locations = locations;
-              /* This physically sorts the list by distance from query */
-              visible_locations.sort(compareDistance);
-              $(".sort-message").text("Sorted by distance from '" + query + "'.");
-          } else {
-              $(".sort-message").text("Sorted by closest match to query '" + query + "'.");
-              display_distance = false;
+          let locations_by_query = fuse.search(query);
+          $(".sort-message").text("Sorted by closest match to query '" + query + "'.");
+          if (query == "") {
+              locations_by_query = locations.sort(compareByName);
+              $(".sort-message").text("Sorted alphabetically.");
           }
+          /* If location not found, sorts by closeness of address. */
           /* For each location (sorted by distance)... */
-          for (let x in visible_locations) {
+          for (let x in locations_by_query) {
               // "loc" is any location
-              let loc = visible_locations[x];
+              let loc = locations_by_query[x];
               // the text that will be displayed next to the button
               let text = loc["name"];
-              if (display_distance) { text += ("; " + Math.round(loc["distance"] * 69) + " miles away") }
+              // if (display_distance) { text += ("; " + Math.round(loc["distance"] * 69) + " miles away") }
               // the following is the HTML for the row added to loc-options for this location
               // $(".loc-options").append(`
               //   <button class="btn loc-select" lat="` + loc["lat"] + `"  lng="` + loc["lng"] + `" name="` + loc["name"] + `">Select</button>
@@ -441,7 +464,7 @@
                 </tr>
               `);
               // adds an <hr> unless this is the last location
-              // if (parseInt(x) + 1 != visible_locations.length) {
+              // if (parseInt(x) + 1 != locations_by_query.length) {
               //     $(".loc-options").append(`<hr/>`);
               // }
           }
@@ -463,7 +486,7 @@
       }
 
       $(document).ready(function () {
-          $(".loc-page").hide(); // hides the location page
+        $(".loc-page").hide(); // hides the location page
           // when the back button is clicked...
           $(".back").click(function () {
               $(".home").show();
@@ -499,7 +522,8 @@
           });
           // submit button for searching
           $(".coordinates").click(function () {
-              updateHomeMap();
+              query = $("#search-box").val();
+              sortLocations();
           });
           /* Loads new data from cache or from google sheets */
           if (!inspectCache()) {
@@ -508,7 +532,8 @@
           } else {
             data = cache_data;
             locations = cache_locs;
-            window.setTimeout(updateHomeMap, 10);
+            sortLocations();
+            // window.setTimeout(sortL, 10);
           }
       });
 
@@ -603,7 +628,7 @@
       <!-- Location Options -->
       <div style="font-family:oxygen" class="loc-options">
         <p class="load-message" style="text-align:center">Loading data...</p>
-        <table class="table loc-table table-striped table-bordered">
+        <table style="font-family: Lato" class="table loc-table table-striped table-bordered">
           <thead class="thead-dark">
           <tr>
             <th class="sort-message"></th>
@@ -644,6 +669,8 @@
     <div style="position:relative;left:18px;" class="indicator-left col-lg-6">
       <br>
       <h1 class="loc-page-title">Overview</h1>
+      <!-- "Last Collection" Text -->
+      <h6 class="last-collected">Data last collected a long time ago.</h6>
       <!-- Data Table -->
       <div class="table-div">
         <table class="table table-hover data-table">

@@ -170,7 +170,8 @@ li a:hover:not(.active) {
 
 /* for indicator tables only */
 .data-table {
-    height: 315px;
+    height: 330px;
+    margin-bottom: 0;
 }
 
 /*
