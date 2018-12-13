@@ -4,72 +4,67 @@
     <meta charset="UTF-8">
     <title>Indicator Page</title>
     <!-- BootStrap, jQuery -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css"
-          integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
-
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
     <!-- jQuery -->
-    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
-            integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
-            crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
     <script>
       window.jQuery = window.$ = jQuery;
-      let focus = "Overview";
-      let all_data = {}
+      let all_data = {};
 
       /* this function loads the data for the data table on overview/indicator pages */
       function loadDataTable(loc) {
         $(".data-table").show();
         $(".table-body").html("");
-      $(".table-head").html(
-        `<tr>
+        $(".table-head").html(
+          `<tr>
           <th scope="col">Indicator</th>
           <th scope="col">Units</th>
           <th scope="col">Average Value</th>
           <th scope="col">Latest Value</th>
           <th scope="col">Trend</th>
         </tr>`
-      );
-      /* "table_info" is the information that will be displayed into the overview table
+        );
+        /* "table_info" is the information that will be displayed into the overview table
         increase:     the sum total increase in value within the past five readings
         avg_increase: the average increase in value within the past five readings
         val:          the sum total value of the past five readings
         avg_val:      the average value of the past five readings
         total_vals:   the number of readings in the past five readings (will be five unless there are less than five total readings)
       */
-      let table_info = {
-        pH: {increase: 0, avg_increase: 0, val: 0, avg_val: 0, total_vals: 0},
-        Turbidity: {increase: 0, avg_increase: 0, val: 0, avg_val: 0, total_vals: 0},
-        Salinity: {increase: 0, avg_increase: 0, val: 0, avg_val: 0, total_vals: 0},
-        Temperature: {increase: 0, avg_increase: 0, val: 0, avg_val: 0, total_vals: 0}
-      }
-      // a list of all indicators
-      let indicators = ["Turbidity", "pH", "Salinity", "Temperature"];
-      // a list of all indicators' respective units
-      let indicator_units = ["NTU", "--", "PSU", "&#176;C"]
-      let num_data_points = all_data["data"].length;
-      for (let indicator_index in indicators) {
-        // "indicator" is a string (e.g. "pH")
-        let indicator = indicators[indicator_index];
-        // for each of the five most recente data points...
-        for (let x = num_data_points - 5; x < num_data_points; x += 1) {
-          if (x < 0) {
-            continue;
-          } // continue if x < 0 (i.e. there are less than five recent values)
-          // "data_point" represents one reading, or any particular row on the Google Sheet
-          let data_point = all_data["data"][x];
-          if (!isNaN(data_point[indicator])) { // if false, that implies this indicator was not measured in this instance
-            table_info[indicator]["val"] += data_point[indicator];
-            table_info[indicator]["total_vals"] += 1;
-            if (x > 0 && x != num_data_points - 5 && !isNaN(all_data["data"][x - 1][indicator])) { // if there is a valid data point taken before this data point
-              table_info[indicator]["increase"] += data_point[indicator] - all_data["data"][x - 1][indicator]; // calculates the increase in value
+        let table_info = {
+          pH: {increase: 0, avg_increase: 0, val: 0, avg_val: 0, total_vals: 0},
+          Turbidity: {increase: 0, avg_increase: 0, val: 0, avg_val: 0, total_vals: 0},
+          Salinity: {increase: 0, avg_increase: 0, val: 0, avg_val: 0, total_vals: 0},
+          Temperature: {increase: 0, avg_increase: 0, val: 0, avg_val: 0, total_vals: 0}
+        }
+        // a list of all indicators
+        let indicators = ["Turbidity", "pH", "Salinity", "Temperature"];
+        // a list of all indicators' respective units
+        let indicator_units = ["NTU", "--", "PSU", "&#176;C"]
+        let num_data_points = all_data["data"].length;
+        for (let indicator_index in indicators) {
+          // "indicator" is a string (e.g. "pH")
+          let indicator = indicators[indicator_index];
+          // for each of the five most recente data points...
+          for (let x = num_data_points - 5; x < num_data_points; x += 1) {
+            if (x < 0) {
+              continue;
+            } // continue if x < 0 (i.e. there are less than five recent values)
+            // "data_point" represents one reading, or any particular row on the Google Sheet
+            let data_point = all_data["data"][x];
+            if (!isNaN(data_point[indicator])) { // if false, that implies this indicator was not measured in this instance
+              table_info[indicator]["val"] += data_point[indicator];
+              table_info[indicator]["total_vals"] += 1;
+              if (x > 0 && x != num_data_points - 5 && !isNaN(all_data["data"][x - 1][indicator])) { // if there is a valid data point taken before this data point
+                table_info[indicator]["increase"] += data_point[indicator] - all_data["data"][x - 1][indicator]; // calculates the increase in value
+              }
             }
           }
-        }
-        // calculates "avg_val" and "avg_increase"
-        table_info[indicator]["avg_val"] = 1.0 * table_info[indicator]["val"] / table_info[indicator]["total_vals"];
-        table_info[indicator]["avg_increase"] = 1.0 * table_info[indicator]["increase"] / table_info[indicator]["total_vals"];
-        // appends data to overview data table
-        $(".table-body").append(`
+          // calculates "avg_val" and "avg_increase"
+          table_info[indicator]["avg_val"] = 1.0 * table_info[indicator]["val"] / table_info[indicator]["total_vals"];
+          table_info[indicator]["avg_increase"] = 1.0 * table_info[indicator]["increase"] / table_info[indicator]["total_vals"];
+          // appends data to overview data table
+          $(".table-body").append(`
           <tr>
             <td>` + indicator + `</td>
             <td>` + indicator_units[indicator_index] + `</td>
@@ -78,22 +73,12 @@
             <td>` + parent.window.round(table_info[indicator]["avg_increase"], 3) + `</td>
           </tr>
         `);
-      }
-      }
-      function loadSection() {
-        loadDataTable(all_data["chosen_loc"]);
-        /* Sets the description of the indicator */
-        $(".wq-information").html(window.parent.getFocusDescriptions()[focus]);
-        /* Removes all HTML from the div containing the plot.ly graph. */
-        $(".graph-container").html("");
-        if (focus != "Overview") {
-          window.parent.loadGraph(all_data["chosen_loc"]);
         }
       }
       $(document).ready(function() {
         all_data = window.parent.passInformation();
         $(".place-name").text(all_data["chosen_loc"]);
-        loadSection();
+        loadDataTable(all_data["chosen_loc"]);
       });
     </script>
     <link rel="stylesheet" href="style.css"></link>
@@ -104,13 +89,6 @@
         <h1 style="color:white;margin-bottom:0" class="place-name">Title</h1>
     </div>
     <div style="text-align:center;overflow:hidden" class="loc-page">
-        <!--<div class="btn-group mr-2" role="group" aria-label="First group">-->
-            <!--<button type="button" name="Overview" class="btn iframe-option option selected-option overview-btn">Overview</button>-->
-            <!--<button type="button" name="Turbidity" class="btn iframe-option option">Turbid.</button>-->
-            <!--<button type="button" name="pH" class="btn iframe-option option">pH</button>-->
-            <!--<button type="button" name="Salinity" class="btn iframe-option option">Salt</button>-->
-            <!--<button style="width:20.5vw" type="button" name="Temperature" class="btn iframe-option option">Temp.</button>-->
-        <!--</div>-->
         <div class="table-div">
             <table class="table data-table">
                 <thead class="table-head">

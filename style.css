@@ -26,56 +26,40 @@
     font-family: oxygen;
 }
 
-.logo {
-    height: 7.5vh;
-}
-
-ul {
-    list-style-type: none;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-    background-color: #333;
-    position: fixed;
-    bottom: 0;
-    width: 100%;
-}
-
-li {
-    float: left;
-}
-
-li a {
-    display: block;
-    color: white;
-    text-align: center;
-    padding: 14px 16px;
-    text-decoration: none;
-}
-
-li a:hover:not(.active) {
-    background-color: #111;
-}
-
-.active {
-    background-color: #4CAF50;
-}
-
 /*
   HOME PAGE
 			*/
+
+/* button that resets cache */
+.reset-cache {
+    border: 1px solid black;
+    position: absolute;
+    left: 5px;
+    top: 5px;
+}
+
+.excel-export-all {
+    border: 1px solid black;
+    position: absolute;
+    right: 5px;
+    top: 5px;
+    background: rgb(0, 113, 66);
+    color: rgb(247, 247, 247);
+}
 
 /* search box on main page */
 #search-box {
     position: relative;
     top: 6px;
     width: 77.5vw;
+    margin-top: 5px;
 }
 
 /* the submit button for searching on the home page */
-.coordinates {
+.search-submit {
     background-color: #66a5ad;
     color: white;
+    margin-top: 5px;
 }
 
 /* div that contains list of locations */

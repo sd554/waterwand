@@ -1,5 +1,6 @@
 <!--WaterWand by FRC Team 1540: The Flaming Chickens-->
 
+<!--suppress JSUnresolvedFunction -->
 <html>
 <head>
   <title>WaterWand</title>
@@ -30,14 +31,10 @@
       const CLIENT_ID = secret["client_sheets_id"]; // Google sheets client ID
       const MAPS_API_KEY = secret["maps_api_key"]; // Google maps API key
 
-      // var geocoder;
-      // establishGeocoder();
-
       $(document).ready(function () {
           $(".maps_script").attr("src", "//maps.googleapis.com/maps/api/js?key=" + MAPS_API_KEY);
       });
 
-      let map_pos = {lat: 45.5122, lng: -122.6587}
       let query = ""; // The query in the search bar
       let chosen_loc = "Place"; // The current location that is selected
       let hover_loc = "Place"; // The previous hovered location.
@@ -78,6 +75,7 @@
       }
 
       /* Passes relevant info to the iFrame */
+      // noinspection JSUnusedLocalSymbols
       function passInformation() {
         return {
           "chosen_loc" : hover_loc,
@@ -94,13 +92,6 @@
       /* Finds the distance between two points */
       function distance(a1, b1, a2, b2) {
           return Math.sqrt(Math.pow(a1 - a2, 2) + Math.pow(b1 - b2, 2))
-      }
-
-      /* Finds the distance between two objects, each with a lats and a lng, and a central point, and returns which one is longer */
-      function compareDistance(obj1, obj2) {
-          obj1["distance"] = distance(obj1["lat"], obj1["lng"], map_pos["lat"], map_pos["lng"]);
-          obj2["distance"] = distance(obj2["lat"], obj2["lng"], map_pos["lat"], map_pos["lng"]);
-          return obj1["distance"] - obj2["distance"];
       }
 
       /* Compares two data points by their date in milliseconds */
@@ -131,15 +122,6 @@
           return true;
       }
 
-      // function establishGeocoder() {
-      //   try {
-      //     geocoder = new google.maps.Geocoder();
-      //     updateHomeMap();
-      //   } catch (_) {
-      //     window.setTimeout(establishGeocoder, 200);
-      //   }
-      // }
-
       /* Sets scrolling settings */
       /* "switch_page" is a boolean equal to true if you are switching pages, and false if you are just resizing a page */
       function scrollSettings(switch_page) {
@@ -158,30 +140,6 @@
             $(".indicator-display-div").show();
           }
       }
-
-      /* edits map on the home screen with query, then sorts locations */
-      // function updateHomeMap() {
-      // //     // sets query to search box value
-      // //     // query will default to 'Portland, Oregon'
-      //     query = $("#search-box").val() || "Portland, Oregon";
-      // //     // Initialize the Geocoder (a bunch of maps stuff)
-      //     if (geocoder) {
-      //       geocoder.geocode({
-      //         'address': query
-      //       }, function (results, status) {
-      //     //     // if (results.size > 0) {
-      //         if (status === google.maps.GeocoderStatus.OK) {
-      //           console.log(query);
-      //           console.log(map_pos);
-      //           map_pos = {lat: results[0].geometry.location.lat(), lng: results[0].geometry.location.lng()}
-      //           console.log(map_pos);
-      //           //       //                 url = "https://www.google.com/maps/embed/v1/view?key=" + MAPS_API_KEY + "&center=" + map_pos["lat"] + "," + map_pos["lng"] + "&zoom=13&maptype=satellite";
-      //         }
-      //     //  sorts locations
-      //         sortLocations();
-      //       });
-      //     }
-      // }
 
       /* loadSection() sets the display when a new indicator tab is selected */
       function loadSection(new_focus) {
@@ -237,13 +195,19 @@
                   // the following converts Date.getHours() to 12 hour time
                   let time_of_day = "AM";
                   let hours = date_obj.getHours();
+                  let minutes = date_obj.getMinutes().toString();
                   if (hours > 12) {
                       hours %= 12;
                       time_of_day = "PM";
+                  } else if (hours == 0) {
+                      hours = 12;
+                  }
+                  if (minutes < 10) {
+                    minutes = "0" + minutes;
                   }
                   // converts date to a string-friendly format
                   let date = (date_obj.getMonth() + 1) + "/" + date_obj.getDate() + "/" + date_obj.getFullYear();
-                  let time = (hours + ":" + date_obj.getMinutes() + " " + time_of_day);
+                  let time = (hours + ":" + minutes + " " + time_of_day);
 
                   $(".table-body").append(`
               <tr id="data-table-` + dp + `">
@@ -412,14 +376,11 @@
           });
       }
 
-      /* sortLocations() sorts each locations by distance from map_pos for display on the home screen */
+      /* sortLocations() sorts locations by fuzzy search */
       function sortLocations() {
           /* Erasing everything in the loc-options div */
           $(".loc-table-body").html("");
           $(".load-message").hide();
-          /* Changes height settings depending on window size */
-          // resizeLocationOptions();
-          /* The locations with names found in the query */
           /* fuse.js fuzzy search */
           let options = {
               shouldSort: true,
@@ -435,10 +396,10 @@
               ]
           };
           let fuse = new Fuse(locations, options);
-          let display_distance = true;
+          // sorts all locations based on the query
           let locations_by_query = fuse.search(query);
           $(".sort-message").text("Sorted by closest match to query '" + query + "'.");
-          if (query == "") {
+          if (query == "") { // if the query is blank, we will just sort alphabetically
               locations_by_query = locations.sort(compareByName);
               $(".sort-message").text("Sorted alphabetically.");
           }
@@ -449,12 +410,7 @@
               let loc = locations_by_query[x];
               // the text that will be displayed next to the button
               let text = loc["name"];
-              // if (display_distance) { text += ("; " + Math.round(loc["distance"] * 69) + " miles away") }
-              // the following is the HTML for the row added to loc-options for this location
-              // $(".loc-options").append(`
-              //   <button class="btn loc-select" lat="` + loc["lat"] + `"  lng="` + loc["lng"] + `" name="` + loc["name"] + `">Select</button>
-              //   <span>` + text + `</span>
-              // `);
+              // the following is the HTML for the row added to loc-options
               $(".loc-table-body").append(`
                 <tr class="loc-table-row" name="` + loc["name"] + `" + style="height:8vh">
                     <td>
@@ -463,10 +419,6 @@
                     </td>
                 </tr>
               `);
-              // adds an <hr> unless this is the last location
-              // if (parseInt(x) + 1 != locations_by_query.length) {
-              //     $(".loc-options").append(`<hr/>`);
-              // }
           }
           /* the EventListener for the buttons */
           $(".loc-select").click(function () {
@@ -500,6 +452,11 @@
               $(".option").removeClass("selected-option");
               $(".overview-btn").addClass("selected-option");
           });
+          // when the reset cache button is pressed
+          $(".reset-cache").click(function() {
+            localStorage.clear();
+            location.reload();
+          });
           // when an indicator-option button is clicked...
           $(".option").click(function () {
               // resets all indicator button displays, and then sets display for this button
@@ -510,18 +467,22 @@
           });
           // exports sheets to excel
           $(".excel-export").click(function () {
-              JSONToCSVConvertor(data[chosen_loc], chosen_loc);
+              JSONToCSVConvertor(data[chosen_loc], chosen_loc, true);
+          });
+          // exports all data to excel
+          $(".excel-export-all").click(function () {
+              allDataToCSV("All Data");
           });
           // whenever we have the search box selected and we press a key
           $('#search-box').keypress(function (e) {
               // if the key is "enter"
               if (e.keyCode == 13) {
                   // submit the query
-                  $('.coordinates').click();
+                  $('.search-submit').click();
               }
           });
           // submit button for searching
-          $(".coordinates").click(function () {
+          $(".search-submit").click(function () {
               query = $("#search-box").val();
               sortLocations();
           });
@@ -545,34 +506,43 @@
               loadGraph(chosen_loc);
           }
           // Resets height of loc-options
-          // resizeLocationOptions();
           scrollSettings(false);
 
       });
 
+      // reads all data from the Google Sheet, turns it into a JSON, and then dumps everything into the JSONtoCSVConverter
+      function allDataToCSV(ReportTitle) {
+        getValues('A1:J').then(values => {
+          if (values.length > 0) {
+            JSONToCSVConvertor(values, ReportTitle, false);
+          }
+        });
+      }
+
       // from https://stackoverflow.com/questions/29230518/how-to-export-json-data-to-excel-file-using-javascript
       // converts a JSON file to an excel sheet and downloads it
-      function JSONToCSVConvertor(JSONData, ReportTitle) {
+      function JSONToCSVConvertor(JSONData, ReportTitle, ShowLabel) {
           //If JSONData is not an object then JSON.parse will parse the JSON string in an Object
           let arrData = typeof JSONData != 'object' ? JSON.parse(JSONData) : JSONData;
           let CSV = '';
           //This condition will generate the Label/Header
           let row = "";
-          //This loop will extract the label from 1st index of on array
-          for (let index in arrData[0]) {
+          if (ShowLabel) {
+            //This loop will extract the label from 1st index of on array
+            for (let index in arrData[0]) {
               //Now convert each value to string and comma-seprated
               row += index.charAt(0).toUpperCase() + index.slice(1) + ',';
+            }
+            row = row.slice(0, -1);
+            CSV += row + '\r\n';
           }
-          row = row.slice(0, -1);
           //append Label row with line break
-          CSV += row + '\r\n';
           //1st loop is to extract each row
           for (let i = 0; i < arrData.length; i++) {
               let row = "";
               //2nd loop will extract each column and convert it in string comma-separated
               for (let index in arrData[i]) {
                   row += '"' + arrData[i][index] + '",';
-                  console.log(arrData[i][index]);
               }
               row.slice(0, row.length - 1);
               //add a line break after each row
@@ -610,8 +580,13 @@
 <div class="home">
   <!-- Banner at Top of Home Page -->
   <div class="upper-banner">
+    <!-- Update Data Button -->
+    <button class="btn btn-dark reset-cache">Update Data</button>
+    <!-- Export to Excel Button -->
+    <button class="btn excel-style excel-export-all">Export to Excel</button>
     <div style="height:50px;" class="transparent-layer">
-      <h1 class="banner-title">WaterWand</h1>
+      <!--<h1 class="banner-title">WaterWand</h1>-->
+      <img style="height:50px" src="waterwand.png" />
     </div>
   </div>
   <!-- The Rest of Home Page -->
@@ -649,7 +624,7 @@
   <!-- Banner at Top of Location Page -->
   <div class="upper-banner">
     <button class="btn btn-dark back">Back</button>
-    <button class="btn excel-export">Export to Excel</button>
+    <button class="btn excel-style excel-export">Export to Excel</button>
     <div class="transparent-layer">
       <br/>
       <h1 class="title banner-title">Place</h1>
@@ -697,24 +672,6 @@
     </div>
   </div>
 </div>
-<ul hidden>
-  <li><a class="active" href="#home">Home</a></li>
-  <li><a href="#news">News</a></li>
-  <li><a href="#contact">Contact</a></li>
-  <li><a href="#about">About</a></li>
-</ul>
-<!--<div style="position:fixed;bottom:5px;right:5px;" class="lower-banner">-->
-  <!--&lt;!&ndash; Links to SurfRider and Team 1540 &ndash;&gt;-->
-  <!--<a href="http://team1540.org" target='_blank'>-->
-    <!--<img class="logo" src="flamingchickens.png"/>-->
-  <!--</a>-->
-  <!--<a href="http://www.surfrider.org/blue-water-task-force" target='_blank'>-->
-    <!--<img class="logo" src="bluewater.png"/>-->
-  <!--</a>-->
-  <!--<a href="http://www.surfrider.org/blue-water-task-force" target='_blank'>-->
-    <!--<img class="logo" src="surfrider.png"/>-->
-  <!--</a>-->
-<!--</div>-->
 <link rel="stylesheet" href="style.css"></link>
 </body>
 </html>
